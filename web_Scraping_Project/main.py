@@ -4,14 +4,14 @@ import requests, openpyxl
 excel = openpyxl.Workbook()
 print(excel.sheetnames)
 sheet = excel.active
-sheet.title = 'Apple iPhone XS'
+sheet.title = 'Apple iPhone X'
 print(excel.sheetnames)
 sheet.append(['Id', 'Review_Title', 'Review_Comment', 'Rating'])
 
 try:
     # get the source url
     source = requests.get(
-        'https://www.ebay.com/urw/Apple-iPhone-XS-64GB-Space-Gray-Unlocked-A1920-CDMA-GSM-/product-reviews/25023700375?_itm=274615310667')
+        'https://www.ebay.com/urw/Apple-iPhone-X-256GB-Space-Gray-Unlocked-A1901-GSM-/product-reviews/239160993?_itm=155158125118')
     # validation about the url
     source.raise_for_status()
     # website url format using parser
@@ -28,9 +28,9 @@ try:
     print(pages)
 
     sourceLink = [
-        'https://www.ebay.com/urw/Apple-iPhone-XS-64GB-Space-Gray-Unlocked-A1920-CDMA-GSM-/product-reviews/25023700375?_itm=274615310667']
+        'https://www.ebay.com/urw/Apple-iPhone-X-256GB-Space-Gray-Unlocked-A1901-GSM-/product-reviews/239160993?_itm=155158125118']
     for i in range(pages - 1):
-        link = 'https://www.ebay.com/urw/Apple-iPhone-XS-64GB-Space-Gray-Unlocked-A1920-CDMA-GSM-/product-reviews/25023700375?_itm=274615310667&pgn=' + str(
+        link = 'https://www.ebay.com/urw/Apple-iPhone-X-256GB-Space-Gray-Unlocked-A1901-GSM-/product-reviews/239160993?_itm=155158125118&pgn=' + str(
             i + 2)
         sourceLink.append(link)
 
@@ -62,4 +62,4 @@ try:
 except Exception as e:
     print(e)
 
-excel.save('ebayReview.xlsx')
+excel.save('ebayReviewiphonex.xlsx')
