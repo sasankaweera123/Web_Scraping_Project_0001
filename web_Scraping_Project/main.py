@@ -8,10 +8,11 @@ sheet.title = 'Apple iPhone X'
 print(excel.sheetnames)
 sheet.append(['Id', 'Review_Title', 'Review_Comment', 'Rating'])
 
+urlLink = 'https://www.ebay.com/urw/Apple-iPhone-8-64GB-Space-Gray-AT-T-A1905-GSM-/product-reviews/239054120?_itm=292922186222'
+
 try:
     # get the source url
-    source = requests.get(
-        'https://www.ebay.com/urw/Apple-iPhone-X-256GB-Space-Gray-Unlocked-A1901-GSM-/product-reviews/239160993?_itm=155158125118')
+    source = requests.get(urlLink)
     # validation about the url
     source.raise_for_status()
     # website url format using parser
@@ -27,10 +28,9 @@ try:
     pages = int(int(count[0]) / 10) + 1 if int(count[0]) % 10 != 0 else int(int(count[0]) / 10)
     print(pages)
 
-    sourceLink = [
-        'https://www.ebay.com/urw/Apple-iPhone-X-256GB-Space-Gray-Unlocked-A1901-GSM-/product-reviews/239160993?_itm=155158125118']
+    sourceLink = [urlLink]
     for i in range(pages - 1):
-        link = 'https://www.ebay.com/urw/Apple-iPhone-X-256GB-Space-Gray-Unlocked-A1901-GSM-/product-reviews/239160993?_itm=155158125118&pgn=' + str(
+        link = urlLink+'&pgn=' + str(
             i + 2)
         sourceLink.append(link)
 
