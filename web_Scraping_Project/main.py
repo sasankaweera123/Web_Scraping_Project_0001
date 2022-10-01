@@ -1,65 +1,105 @@
 from bs4 import BeautifulSoup
-import requests, openpyxl
+import requests
+import openpyxl
 
-excel = openpyxl.Workbook()
-print(excel.sheetnames)
-sheet = excel.active
-sheet.title = 'Apple iPhone XS'
-print(excel.sheetnames)
-sheet.append(['Id', 'Review_Title', 'Review_Comment', 'Rating'])
 
-try:
-    # get the source url
-    source = requests.get(
-        'https://www.ebay.com/urw/Apple-iPhone-XS-64GB-Space-Gray-Unlocked-A1920-CDMA-GSM-/product-reviews/25023700375?_itm=274615310667')
-    # validation about the url
-    source.raise_for_status()
-    # website url format using parser
-    soup = BeautifulSoup(source.text, 'html.parser')
-    # print(soup)
+def create_excel_file():
+    excel = openpyxl.Workbook()
+    print(excel.sheetnames)
+    sheet = excel.active
+    sheet.title = 'Apple iPhone X'
+    print(excel.sheetnames)
+    sheet.append(['Id', 'Review_Title', 'Review_Comment', 'Rating'])
+
+    return excel, sheet
+
+
+def add_excel_file_data(sheet, data):
+    sheet.append(data)
+
+
+def save_excel_file(excel, name):
+    excel.save(name)
+
+
+def get_number_of_pages(soup):
     # Review count
-    findCount = soup.find('div', id='reviewContentSection').find('div', id='reviewsSection')
-    count = findCount.find('div', class_='review-section-header').h2.text
+    find_count = soup.find('div', id='reviewContentSection').find('div', id='reviewsSection')
+    count = find_count.find('div', class_='review-section-header').h2.text
     count = [int(s) for s in count.split() if s.isdigit()]
 
     print(int(count[0]))
 
     pages = int(int(count[0]) / 10) + 1 if int(count[0]) % 10 != 0 else int(int(count[0]) / 10)
     print(pages)
+    return pages
 
-    sourceLink = [
-        'https://www.ebay.com/urw/Apple-iPhone-XS-64GB-Space-Gray-Unlocked-A1920-CDMA-GSM-/product-reviews/25023700375?_itm=274615310667']
+
+def get_all_links(link, pages):
+    source_link = [link]
     for i in range(pages - 1):
-        link = 'https://www.ebay.com/urw/Apple-iPhone-XS-64GB-Space-Gray-Unlocked-A1920-CDMA-GSM-/product-reviews/25023700375?_itm=274615310667&pgn=' + str(
-            i + 2)
-        sourceLink.append(link)
+        links = link + '?pgn=' + str(i + 2)
+        source_link.append(links)
 
-    print(sourceLink)
-    idNum = 0
-    for s in sourceLink:
-        source = requests.get(s)
-        source.raise_for_status()
-        soup = BeautifulSoup(source.text, 'html.parser')
+    print(source_link)
+    return source_link
+
+
+def url_format(url):
+    # get the source url
+    source = requests.get(url)
+    # validation about the url
+    source.raise_for_status()
+    # website url format using parser
+    soup = BeautifulSoup(source.text, 'html.parser')
+
+    return soup
+
+
+def get_review_data(section):
+    try:
+        review_title = section.find('h3', class_='review-item-title').text
+        review_comment = section.find('p', class_='review-item-content').text
+    # put the value error here if error occur remove value error
+    except ValueError:
+        review_title = ''
+        review_comment = ''
+
+    return review_title, review_comment
+
+
+def get_data(sheet, url):
+    # print(soup)
+    number_of_pages = get_number_of_pages(url_format(url))
+    all_links = get_all_links(url, number_of_pages)
+    id_num = 0
+    for s in all_links:
+        soup = url_format(s)
         title = soup.find('div', class_="reviews").find_all('div', class_='ebay-review-section')
 
         for t in title:
             review_section_left = t.find('div', class_='ebay-review-section-l')
             review_section_right = t.find('div', class_='ebay-review-section-r')
-            try:
-                review_title = review_section_right.find('h3', class_='review-item-title').text
-                review_comment = review_section_right.find('p', class_='review-item-content').text
-            except:
-                review_title = ''
-                review_comment = ''
+            review_title, review_comment = get_review_data(review_section_right)
 
             rating = int(review_section_left.find('div', class_='ebay-star-rating').meta['content'])
 
             # print(review_title,review_comment,rating)
-            idNum = idNum + 1
-            sheet.append([idNum, review_title, review_comment, rating])
+            id_num = id_num + 1
+            add_excel_file_data(sheet, [id_num, review_title, review_comment, rating])
 
 
-except Exception as e:
-    print(e)
+def main():
+    excel, sheet = create_excel_file()
+    website = 'https://www.ebay.com/'
+    item_code = '220288242?_itm=284977072521'
+    url = website+'urw/Apple-iPhone-SE-64GB-Space-Grey-Unlocked-A1723-CDMA-GSM-/product-reviews/'+item_code
+    try:
+        get_data(sheet, url)
+    except Exception as e:
+        print(e)
+    save_excel_file(excel, 'Apple iPhone X.xlsx')
 
-excel.save('ebayReview.xlsx')
+
+if __name__ == '__main__':
+    main()
