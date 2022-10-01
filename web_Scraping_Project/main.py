@@ -2,22 +2,23 @@ from bs4 import BeautifulSoup
 import requests
 import openpyxl
 
-excel = openpyxl.Workbook()
-sheet = excel.active
-
 
 def create_excel_file():
+    excel = openpyxl.Workbook()
     print(excel.sheetnames)
+    sheet = excel.active
     sheet.title = 'Apple iPhone X'
     print(excel.sheetnames)
     sheet.append(['Id', 'Review_Title', 'Review_Comment', 'Rating'])
 
+    return excel, sheet
 
-def add_excel_file_data(data):
+
+def add_excel_file_data(sheet, data):
     sheet.append(data)
 
 
-def save_excel_file(name):
+def save_excel_file(excel, name):
     excel.save(name)
 
 
@@ -37,8 +38,7 @@ def get_number_of_pages(soup):
 def get_all_links(link, pages):
     source_link = [link]
     for i in range(pages - 1):
-        links = link + '?pgn=' + str(
-            i + 2)
+        links = link + '?pgn=' + str(i + 2)
         source_link.append(links)
 
     print(source_link)
@@ -68,7 +68,7 @@ def get_review_data(section):
     return review_title, review_comment
 
 
-def get_data(url):
+def get_data(sheet, url):
     # print(soup)
     number_of_pages = get_number_of_pages(url_format(url))
     all_links = get_all_links(url, number_of_pages)
@@ -86,19 +86,19 @@ def get_data(url):
 
             # print(review_title,review_comment,rating)
             id_num = id_num + 1
-            add_excel_file_data([id_num, review_title, review_comment, rating])
+            add_excel_file_data(sheet, [id_num, review_title, review_comment, rating])
 
 
 def main():
-    create_excel_file()
+    excel, sheet = create_excel_file()
     website = 'https://www.ebay.com/'
     item_code = '220288242?_itm=284977072521'
     url = website+'urw/Apple-iPhone-SE-64GB-Space-Grey-Unlocked-A1723-CDMA-GSM-/product-reviews/'+item_code
     try:
-        get_data(url)
+        get_data(sheet, url)
     except Exception as e:
         print(e)
-    save_excel_file('Apple iPhone X.xlsx')
+    save_excel_file(excel, 'Apple iPhone X.xlsx')
 
 
 if __name__ == '__main__':
