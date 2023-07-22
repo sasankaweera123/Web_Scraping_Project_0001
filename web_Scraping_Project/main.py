@@ -1,14 +1,24 @@
+import os
+from tqdm import tqdm
 from bs4 import BeautifulSoup
 import requests
 import openpyxl
+import mysql.connector as mc
+
+database_config = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': '',
+    'database': 'moody'
+}
 
 
-def create_excel_file():
+def create_excel_file(product_name):
     excel = openpyxl.Workbook()
-    print(excel.sheetnames)
+    # print(excel.sheetnames)
     sheet = excel.active
-    sheet.title = 'Apple iPhone X'
-    print(excel.sheetnames)
+    sheet.title = product_name
+    # print(excel.sheetnames)
     sheet.append(['Id', 'Review_Title', 'Review_Comment', 'Rating'])
 
     return excel, sheet
@@ -28,10 +38,10 @@ def get_number_of_pages(soup):
     count = find_count.find('div', class_='review-section-header').h2.text
     count = [int(s) for s in count.split() if s.isdigit()]
 
-    print(int(count[0]))
+    # print(int(count[0]))
 
     pages = int(int(count[0]) / 10) + 1 if int(count[0]) % 10 != 0 else int(int(count[0]) / 10)
-    print(pages)
+    # print(pages)
     return pages
 
 
@@ -41,7 +51,7 @@ def get_all_links(link, pages):
         links = link + '?pgn=' + str(i + 2)
         source_link.append(links)
 
-    print(source_link)
+    # print(source_link)
     return source_link
 
 
@@ -62,6 +72,9 @@ def get_review_data(section):
         review_comment = section.find('p', class_='review-item-content').text
     # put the value error here if error occur remove value error
     except ValueError:
+        review_title = ''
+        review_comment = ''
+    except AttributeError:
         review_title = ''
         review_comment = ''
 
@@ -89,16 +102,41 @@ def get_data(sheet, url):
             add_excel_file_data(sheet, [id_num, review_title, review_comment, rating])
 
 
-def main():
-    excel, sheet = create_excel_file()
-    website = 'https://www.ebay.com/'
-    item_code = '220288242?_itm=284977072521'
-    url = website+'urw/Apple-iPhone-SE-64GB-Space-Grey-Unlocked-A1723-CDMA-GSM-/product-reviews/'+item_code
+def get_data_from_database():
+    product_url =[]
+    product_name = []
     try:
-        get_data(sheet, url)
-    except Exception as e:
+        conn = mc.connect(**database_config)
+        cursor = conn.cursor()
+        cursor.execute("USE moody")
+        cursor.execute("SELECT * FROM products")
+        result = cursor.fetchall()
+        for row in result:
+            product_url.append(row[3])
+            product_name.append(row[2])
+        conn.close()
+    except mc.Error as e:
         print(e)
-    save_excel_file(excel, 'Apple iPhone X.xlsx')
+    # print(product_url)
+    # print(product_name)
+    return product_name, product_url
+
+
+def main():
+    product_name, product_url = get_data_from_database()
+    for i in tqdm(range(len(product_name)), desc="Processing products"):
+        url = product_url[i]
+        file_name = product_name[i]
+        excel, sheet = create_excel_file(product_name[i])
+
+        try:
+            get_data(sheet, url)
+        except Exception as e:
+            print(e)
+        # check if the file exist or not if file exist
+        if file_name + '.xlsx' in os.listdir():
+            save_excel_file(excel, file_name + '1.xlsx')
+        save_excel_file(excel, file_name + '.xlsx')
 
 
 if __name__ == '__main__':
