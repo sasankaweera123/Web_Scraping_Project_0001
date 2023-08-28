@@ -29,7 +29,7 @@ def add_excel_file_data(sheet, data):
 
 
 def save_excel_file(excel, name):
-    excel.save(name)
+    excel.save('data/' + name)
 
 
 def get_number_of_pages(soup):
@@ -81,8 +81,9 @@ def get_review_data(section):
     return review_title, review_comment
 
 
-def get_data(sheet, url):
+def get_data(sheet, url, product_id):
     # print(soup)
+    data_set = []
     number_of_pages = get_number_of_pages(url_format(url))
     all_links = get_all_links(url, number_of_pages)
     id_num = 0
@@ -100,11 +101,15 @@ def get_data(sheet, url):
             # print(review_title,review_comment,rating)
             id_num = id_num + 1
             add_excel_file_data(sheet, [id_num, review_title, review_comment, rating])
+            data_set.append([product_id, review_title, review_comment, rating])
+
+    insert_data_into_database(data_set)
 
 
 def get_data_from_database():
-    product_url =[]
+    product_url = []
     product_name = []
+    product_id = []
     try:
         conn = mc.connect(**database_config)
         cursor = conn.cursor()
@@ -114,23 +119,60 @@ def get_data_from_database():
         for row in result:
             product_url.append(row[3])
             product_name.append(row[2])
+            product_id.append(row[1])
         conn.close()
     except mc.Error as e:
         print(e)
     # print(product_url)
     # print(product_name)
-    return product_name, product_url
+    return product_name, product_url, product_id
+
+
+def insert_data_into_database(data):
+    try:
+        conn = mc.connect(**database_config)
+        cursor = conn.cursor()
+        cursor.execute("USE moody")
+        insert_query = "INSERT INTO reviews (product_id,review_title,review_comment,rating) VALUES (%s,%s,%s,%s)"
+        for i in data:
+            cursor.execute(insert_query, i)
+        conn.commit()
+        conn.close()
+    except mc.Error as e:
+        print(e)
+
+
+def database_recreate():
+    try:
+        conn = mc.connect(**database_config)
+        cursor = conn.cursor()
+        cursor.execute("USE moody")
+        table_name = "reviews"
+        drop_query = "DROP TABLE IF EXISTS " + table_name
+        cursor.execute(drop_query)
+        create_query = ("CREATE TABLE IF NOT EXISTS reviews ("
+                        "id INT AUTO_INCREMENT PRIMARY KEY,product_id VARCHAR(255),"
+                        "review_title VARCHAR(255),"
+                        "review_comment VARCHAR(255),"
+                        "rating INT)"
+                        )
+        cursor.execute(create_query)
+        conn.commit()
+        conn.close()
+    except mc.Error as e:
+        print(e)
 
 
 def main():
-    product_name, product_url = get_data_from_database()
+    product_name, product_url, product_id = get_data_from_database()
+    database_recreate()
     for i in tqdm(range(len(product_name)), desc="Processing products"):
         url = product_url[i]
         file_name = product_name[i]
         excel, sheet = create_excel_file(product_name[i])
 
         try:
-            get_data(sheet, url)
+            get_data(sheet, url, product_id[i])
         except Exception as e:
             print(e)
         # check if the file exist or not if file exist
